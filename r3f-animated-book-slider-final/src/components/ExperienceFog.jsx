@@ -141,52 +141,101 @@ export const ExperienceFog = () => {
 
     // --- LEVA CONTROLS ---
 
-    // Scene / Lighting
-    const { ambientIntensity, ambientColor, dirIntensity, dirPosition, dirColor } = useControls("Scene / Lighting", {
+    // Presets - MUST be first to allow cascading updates if we used a store, 
+    // but here we just need access to the set function of other controls.
+    // However, useControls hooks return values. The `set` function is available differently.
+    // Leva doesn't expose a global `set` easily unless we use the store. 
+    // But we can use `set` from the return if we destructure: `const [values, set] = useControls(...)` - checking documentation/memory.
+    // Standard `useControls` returns `values`. 
+    // To get `set`, we should use `useControls(() => ({ ... }))` returning `[values, set]`.
+
+    // We need to refactor existing controls to get their setters.
+
+    // Renamed, collapsed, ordered folders
+
+    // Lighting (Order 1)
+    const [{ ambientIntensity, ambientColor, dirIntensity, dirPosition, dirColor }, setLighting] = useControls("Lighting", () => ({
         ambientIntensity: { value: 0.5, min: 0, max: 2, step: 0.05 },
         ambientColor: { value: "#ffffff" },
         dirIntensity: { value: 2.5, min: 0, max: 10, step: 0.1, label: "Directional Intensity" },
         dirPosition: { value: [2, 5, 2] },
         dirColor: { value: "#ffffff", label: "Directional Color" }
-    });
+    }), { collapsed: true, order: 1 });
 
-    // Scene / Floor
-    const { showTexture } = useControls("Scene / Floor", {
-        showTexture: { value: true, label: "Show Texture" }
-    });
-
-    // Scene / Book Transform
-    const { bookPos, bookRot } = useControls("Scene / Book Transform", {
+    // Book Transform (Order 2)
+    const [{ bookPos, bookRot }, setBookTransform] = useControls("Book Transform", () => ({
         bookPos: { value: [0, 0, 0], step: 0.1, label: "Position" },
         bookRot: { value: [0, 0, 0], step: 0.01, label: "Rotation" }
-    });
+    }), { collapsed: true, order: 2 });
 
-    // Scene / Book State
-    useControls("Scene / Book State", {
+    // Presets (Order 3)
+    useControls("Presets", {
+        "Load Preset": {
+            options: {
+                "Default": "default",
+                "Dev Preset 1": "dev1"
+            },
+            onChange: (v) => {
+                if (v === "default") {
+                    setLighting({
+                        ambientIntensity: 0.5, ambientColor: "#ffffff",
+                        dirIntensity: 2.5, dirPosition: [2, 5, 2], dirColor: "#ffffff"
+                    });
+                    setBookTransform({ bookPos: [0, 0, 0], bookRot: [0, 0, 0] });
+                } else if (v === "dev1") {
+                    setBookTransform({
+                        bookPos: [-2.2, -1.1, -2.3],
+                        bookRot: [1.92, -0.11, 2.37]
+                    });
+                }
+            }
+        }
+    }, { collapsed: true, order: 3 });
+
+    // Book State (Order 4)
+    useControls("Book State", {
         "Next Page": button(() => !bookClosed && setPage((p) => p + 1)),
         "Prev Page": button(() => !bookClosed && setPage((p) => Math.max(0, p - 1))),
-        "Toggle Close": button(() => setBookClosed((c) => !c)),
+        "Open/Close Book": button(() => setBookClosed((c) => !c)),
         "Reset Page": button(() => setPage(0)),
-    }, [bookClosed, page]); // Dep array for callbacks? Leva button callbacks might need stable refs or use updated state if not closed over? 
-    // Actually Leva buttons don't take a dependency array in the hook like useEffect. 
-    // But they will close over the current scope.
-    // However, since we are inside the component render body, `setPage` is stable. `bookClosed` changes.
-    // Ideally we pass a function that doesn't depend on stale closures if possible.
-    // The `setPage` with updater `p => p+1` is safe.
-    // `setBookClosed` with `c => !c` is safe.
-    // But the check `!bookClosed` inside the button callback:
-    // If we re-render, the hook is called again with new callbacks closing over new `bookClosed`.
-    // Leva should update the button handler.
+    }, { collapsed: true, order: 4 }, [bookClosed, page]);
 
-    // Scene / Camera Presets
-    useControls("Scene / Camera", {
+    // Camera (Order 5)
+    useControls("Camera", {
         "Free Look": button(() => setCameraPos(null)),
         "Red Cover / Page Side": button(() => setCameraPos([0, 0, 14])),
         "Spine / Back": button(() => setCameraPos([14, 0, 0])),
         "Blue Cover / Page Side": button(() => setCameraPos([0, 0, -14])),
         "Straight On": button(() => setCameraPos([-14, 0, 0])),
         "Top Down": button(() => setCameraPos([0, 14, 0])),
-    });
+    }, { collapsed: true, order: 5 });
+
+    // Debug Settings (Order 100 - Bottom)
+    const [{ showTexture }] = useControls("Debug Settings", () => ({
+        showTexture: { value: true, label: "Show Floor Texture" }
+    }), { collapsed: true, order: 100 });
+
+    // Master Save (Order -100 - Top)
+    // We define this last so it closes over the values, but use order -100 to show it at top.
+    useControls({
+        "Master Save": button(() => {
+            const config = {
+                lighting: { ambientIntensity, ambientColor, dirIntensity, dirPosition, dirColor },
+                bookTransform: { bookPos, bookRot },
+                floor: { showTexture },
+                note: "Cloud settings are saved separately via their own controls if needed, or we can grab them if we lift state."
+            };
+            console.log("--- MASTER SAVE ---");
+            console.log(JSON.stringify(config, null, 2));
+            const blob = new Blob([JSON.stringify(config, null, 2)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "master-scene-config.json";
+            a.click();
+            URL.revokeObjectURL(url);
+        })
+    }, { order: -100 });
 
     return (
         <>
@@ -228,13 +277,6 @@ export const ExperienceFog = () => {
                 shadow-bias={-0.0001}
             />
             <Floor showTexture={showTexture} />
-
-            {/* Export controls last to ensure bottom placement */}
-            <SceneExport values={{
-                ambient: { intensity: ambientIntensity, color: ambientColor },
-                directional: { intensity: dirIntensity, position: dirPosition, color: dirColor },
-                book: { position: bookPos, rotation: bookRot }
-            }} />
         </>
     );
 };
