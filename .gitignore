@@ -1,3 +1,5 @@
 ASSETS/
 *.psd
 video/
+*.fbx
+node_modules/

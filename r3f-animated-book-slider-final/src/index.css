@@ -1,0 +1,189 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@100..900&display=swap");
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --w: 322px;         /* card width */
+  --h: 500px;         /* card height */
+  --d: 50px;          /* thickness */
+  --edge: #1a1a1a;    /* edge color */
+}
+
+#root {
+  width: 100vw;
+  height: 100vh;
+  background: none;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+}
+
+.outline-text {
+  -webkit-text-stroke: 1px white;
+}
+
+.card-container {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100vh;
+  perspective: 1200px;
+  position: relative;
+}
+
+/* tilt + float live only here */
+.card-outer {
+  width: var(--w);
+  height: var(--h);
+  transform: rotateZ(-5deg);
+  animation: float 3s ease-in-out infinite;
+  will-change: transform;
+  cursor: pointer;
+  transform-origin: right center;
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+}
+
+.card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 3s ease-in-out;
+  border-radius: 0; /* faces handle their own rounding */
+  will-change: transform;
+  transform-origin: right center;
+}
+
+.card-outer.is-flipped .card-inner {
+  transform: rotateY(-180deg);
+}
+
+.face {
+  position: absolute;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  outline: 1px solid transparent; /* reduces shimmer */
+}
+
+/* FRONT/BACK */
+.face.front,
+.face.back {
+  width: var(--w);
+  height: var(--h);
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.face.front {
+  transform: translateZ(calc(var(--d) / 2));
+}
+
+.face.back {
+  transform: rotateY(180deg) translateZ(calc(var(--d) / 2));
+}
+
+.card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* EDGES */
+.face.right,
+.face.left {
+  width: var(--d);
+  height: var(--h);
+  left: calc(50% - var(--d)/2);
+  top: 0;
+  background: linear-gradient(#2a2a2a, #0f0f0f);
+}
+
+.face.right {
+  transform: rotateY(90deg) translateZ(calc(var(--w) / 2));
+}
+
+.face.left {
+  transform: rotateY(-90deg) translateZ(calc(var(--w) / 2));
+}
+
+.face.top,
+.face.bottom {
+  width: var(--w);
+  height: var(--d);
+  top: calc(50% - var(--d)/2);
+  left: 0;
+  background: linear-gradient(#2a2a2a, #0f0f0f);
+}
+
+.face.top {
+  transform: rotateX(90deg) translateZ(calc(var(--h) / 2));
+}
+
+.face.bottom {
+  transform: rotateX(-90deg) translateZ(calc(var(--h) / 2));
+}
+
+/* subtle highlight to sell thickness */
+.face.right, .face.left, .face.top, .face.bottom {
+  box-shadow: inset 0 0 6px rgba(255,255,255,0.06);
+  background-color: var(--edge);
+}
+
+/* gentle float, only on outer so it doesn't fight the flip */
+@keyframes float {
+  0%,100% {
+    transform: rotateZ(-5deg) translateY(0);
+  }
+  50% {
+    transform: rotateZ(-5deg) translateY(-3px);
+  }
+}
+
+/* overlay stays above */
+.password-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+}
+
+/* Page routing styles */
+.page-root {
+  position: relative;
+  isolation: isolate;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background-color: transparent;
+  z-index: 1;
+}
+
+/* Ensure landing page background covers everything */
+body[data-route="landing"] {
+  background: none !important;
+  margin: 0;
+  padding: 0;
+}
+
+body[data-route="landing"] #root {
+  background: none !important;
+  margin: 0;
+  padding: 0;
+}
+
+/* Optional: neutralize any prior global root background on this app */
+body[data-route="landing"] #root { background: none; }
+body[data-route="menu"]    #root { background: #0b0b0b; }
+
+/* If you had a legacy fixed Canvas, give it a class .global-canvas and hide per route */
+body[data-route="landing"] .global-canvas { display: block; }
+body[data-route="menu"]    .global-canvas { display: none !important; }
