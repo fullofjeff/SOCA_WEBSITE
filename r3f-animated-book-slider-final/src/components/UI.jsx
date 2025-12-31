@@ -1,5 +1,16 @@
 import { atom, useAtom } from "jotai";
-import { useEffect } from "react";
+import { useState } from "react";
+
+// Lighting control atoms
+export const ambientIntensityAtom = atom(0.5);
+export const directionalIntensityAtom = atom(2.5);
+export const directionalPositionAtom = atom([2, 5, 2]);
+export const directionalColorAtom = atom("#ffffff");
+export const ambientColorAtom = atom("#ffffff");
+
+// Book position and rotation atoms
+export const bookPositionAtom = atom([0, 0, 0]);
+export const bookRotationAtom = atom([0, 0, 0]);
 
 const pictures = [
   "DSC00680",
@@ -22,7 +33,8 @@ const pictures = [
 
 export const pageAtom = atom(0);
 export const bookClosedAtom = atom(false);
-export const cameraPositionAtom = atom([0, 2, 8]); // Controls book closing animation
+export const cameraPositionAtom = atom(null); // null = free look mode (default)
+export const showFloorTextureAtom = atom(true); // Toggle between texture and grid
 export const pages = [
   {
     front: "book-cover",
