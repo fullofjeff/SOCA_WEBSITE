@@ -3,3 +3,10 @@ ASSETS/
 video/
 *.fbx
 node_modules/
+
+# Large texture files
+r3f-animated-book-slider-final/public/textures/*.png
+book_back.png
+bookfront.png
+spine.png
+texture_misc.png
